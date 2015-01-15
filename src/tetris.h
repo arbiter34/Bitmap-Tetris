@@ -16,6 +16,7 @@ typedef struct tetrimino {
     int y;
     shape sh;
     int written;
+    int color;
 } tetrimino;
 
 enum Direction {
@@ -34,7 +35,8 @@ extern const shape shapes[] = {
     {{0, 1, 7, 0}}, //j
     {{0, 2, 3, 1}}, //z
     {{0, 1, 3, 2}}, //s
-    {{0, 8, 14, 8}} //t
+    {{0, 8, 14, 8}}, //t
+    {{0, 8, 12, 8}} //short t
 };
 
 void initTetris();
@@ -75,7 +77,7 @@ SDL_Texture* loadTextureFromImage(const char *file, SDL_Renderer *renderer);
 
 void renderTexture(SDL_Texture *tex, SDL_Renderer *renderer, int x, int y);
 
-void renderGameMatrix(SDL_Renderer *renderer, SDL_Texture *texture);
+void renderGameMatrix(SDL_Renderer *renderer, SDL_Texture **texture);
 
 void renderBackground(SDL_Renderer *renderer, SDL_Texture *background);
 
