@@ -13,20 +13,20 @@ int matrix_height;
 SDL_Window *win;
 SDL_Renderer *renderer;
 SDL_Texture *background;
-SDL_Texture *red, *blue, *green;
+SDL_Texture *red, *blue, *green, *light_blue, *orange, *yellow, *purple;
 SDL_Texture **blocks;
 
 void initTetris() {
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0){
         printf("ERROR\n");
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     win = SDL_CreateWindow("Tetris", 100, 100, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     if (win == NULL){
         printf("Error creating window!\n");
         SDL_Quit();
-        return 1;
+        exit(EXIT_FAILURE);
     }
     
     renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -34,27 +34,38 @@ void initTetris() {
         SDL_DestroyWindow(win);
         printf("Create renderer error\n");
         SDL_Quit();
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     background = loadTextureFromImage("background.bmp", renderer);
-    red = loadTextureFromImage("tetris_block_red_32.bmp", renderer);
+
+    yellow = loadTextureFromImage("tetris_block_yellow_32.bmp", renderer);
+    light_blue = loadTextureFromImage("tetris_block_light_blue_32.bmp", renderer);
+    orange = loadTextureFromImage("tetris_block_orange_32.bmp", renderer);
     blue = loadTextureFromImage("tetris_block_blue_32.bmp", renderer);
+    red = loadTextureFromImage("tetris_block_red_32.bmp", renderer);
     green = loadTextureFromImage("tetris_block_green_32.bmp", renderer);
-    blocks = (SDL_Texture **)malloc(sizeof(SDL_Texture*) * 3);
-    blocks[0] = red;
-    blocks[1] = blue;
-    blocks[2] = green;
+    purple = loadTextureFromImage("tetris_block_purple_32.bmp", renderer);
+
+    blocks = (SDL_Texture **)malloc(sizeof(SDL_Texture*) * NUM_SHAPES);
+    blocks[0] = yellow;
+    blocks[1] = light_blue;
+    blocks[2] = orange;
+    blocks[3] = blue;
+    blocks[4] = red;
+    blocks[5] = green;
+    blocks[6] = purple;
+
     if (background == NULL || red == NULL || blue == NULL || green == NULL){
         SDL_Quit();
-        return 1;
+        exit(EXIT_FAILURE);
     }
 }
 
 void refreshGameScreen() {
     SDL_RenderClear(renderer);
     SDL_PollEvent(NULL);
-    printGameMatrix();
+    //printGameMatrix();
     renderBackground(renderer, background);
     renderGameMatrix(renderer, blocks);
     SDL_RenderPresent(renderer);
@@ -79,7 +90,7 @@ void drawTetrimino(tetrimino *t) {
         for (int x = 0; x < 4; x++) {
             if (8>>y & t->sh.structure[x]) {
                 game_matrix[y+t->y][x+t->x][0] = 1;
-                game_matrix[y+t->y][x+t->x][t->color] = 1;
+                game_matrix[y+t->y][x+t->x][1] = t->color;
                 t->written = 1;
             }
         }
@@ -141,6 +152,11 @@ int checkCollisionDown(tetrimino *t) {
     }
     for (int y = 3; y >= 0; y--) {
         for (int x = 0; x < 4; x++) {
+
+            if ((x+t->x < 0 || x+t->x >= matrix_width)) {                
+                continue;
+            }
+
             if ((8>>y & t->sh.structure[x]) && (game_matrix[y+t->y+1][x+t->x][0] || game_matrix[y+t->y][x+t->x][0])) {
                 if (cleared) {
                     drawTetrimino(t);
@@ -164,11 +180,25 @@ int checkCollisionLeftRight(tetrimino *t, int direction) {
         clearTetrimino(t);
         cleared = 1;
     }
+    int x_adj = (direction ? 1 : -1);
+
+    int x_edge = (direction ? matrix_width : -1);
+    int x_adj_index;
     for (int y = 3; y >= 0; y--) {
-        for (unsigned int x = 0; x < 4; x++) {
-            if ((8>>y & t->sh.structure[x]) && ((game_matrix[y+t->y][x+t->x-(direction ? -1 : 1)][0])) 
-                                                || x+t->x-(direction ? -1 : 1) == (direction ? matrix_width+1 : -2)) {
-                
+        for ( int x = 0; x < 4; x++) {
+
+            if ((x+t->x < 0 || x+t->x > matrix_width)) {
+                if (8>>y & t->sh.structure[x]) {
+                    printf("pre=pass\n");
+                    return 1;
+                }
+                continue;
+            }
+
+            x_adj_index = (x+t->x+x_adj < 0 || x+t->x+x_adj >= matrix_width) ? 0 : x_adj;
+            
+            if ((8>>y & t->sh.structure[x]) && (game_matrix[y+t->y][x+t->x+x_adj_index][0] 
+                                                || ((x+t->x+x_adj) == x_edge))) {
                 if (cleared) {
                     drawTetrimino(t);
                 }
@@ -210,8 +240,8 @@ int checkGameOver(tetrimino *t) {
     return 0;
 }
 
-void deleteRow(int r) {
-    for (int y = r; y >= 0; y--) {
+void deleteRow(int row) {
+    for (int y = row; y >= 0; y--) {
         for (int x = 0; x < matrix_width; x++) {
             if (y == 0) {
                 for (int i = 0; i < 4; i++) {
@@ -226,10 +256,12 @@ void deleteRow(int r) {
     }
 }
 
-void blinkRow(int r) {
+void blinkRows(int *rows, size_t size) {
     for (int i = 0; i < 9; i++) {
-        for (int x = 0; x < matrix_width; x++) {
-            game_matrix[r][x][0] = !game_matrix[r][x][0];
+        for (int j = 0; j < size; j++) {
+            for (int x = 0; x < matrix_width; x++) {
+                game_matrix[rows[j]][x][0] = !game_matrix[rows[j]][x][0];
+            }
         }
         refreshGameScreen();
         SDL_Delay(100);
@@ -237,6 +269,8 @@ void blinkRow(int r) {
 }
 
 void checkRowsForCompletion() {
+    int *rows = (int*)malloc(sizeof(int)*1);
+    int count = 0;
     for (int y = 0; y < matrix_height; y++) {
         if (game_matrix[y][0][0]) {
             for (int x = 0; x < matrix_width; x++) {
@@ -244,10 +278,17 @@ void checkRowsForCompletion() {
                     break;
                 }
                 if (game_matrix[y][x][0] && x == (matrix_width-1)) {
-                    blinkRow(y);
-                    deleteRow(y);
+                    count++;
+                    rows = (int*)realloc(rows, sizeof(int)*(count+1));
+                    rows[count-1] = y;
                 }
             }
+        }
+    }
+    if (count > 0) {
+        blinkRows(rows, count);
+        for (int i = 0; i < count; i++) {
+            deleteRow(rows[i]);
         }
     }
 }
@@ -263,7 +304,7 @@ void printMatrix(char matrix[4][4]) {
 }
 
 void rotateTetrimino(tetrimino *t, int direction) {
-    if (checkCollisionDown(t)) {
+    if (direction == down && checkCollisionDown(t)) {
         return;
     }
     tetrimino *temp = (tetrimino *)malloc(sizeof(tetrimino)*1);
@@ -311,19 +352,36 @@ void rotateTetrimino(tetrimino *t, int direction) {
     }
     printf("pre check bottom\n");
     int stuff = 0;
+    printf("checking down\n");
     while (checkCollisionDown(t)) {
         printf("count: %i\n", ++stuff);
         t->y--;
     }
-    while(checkTetriminoCollision(t)) {
-        t->y--;
+    printf("checking left\n");
+    int collided = 0;
+    while (checkCollisionLeftRight(t, left)) {
+        printf("left\n");
+        collided = 1;
+        t->x++;
     }
+    printf("checking right\n");
+    while (checkCollisionLeftRight(t, right)) {
+        printf("right\n");
+        collided = 1;
+        t->x--;
+    }
+    if (collided) {
+        t->x += (direction == left ? -1 : 1);
+    }
+    printf("passed checks\n");
     drawTetrimino(t);
 
 }
 
 void advanceTetrimino(tetrimino *t, int direction) {
-    if (checkCollisionDown(t)) {
+    if (direction == down && checkCollisionDown(t)) {
+        return;
+    } else if ((direction == right || direction == left) && checkCollisionLeftRight(t, direction)) {
         return;
     }
     clearTetrimino(t);
@@ -394,11 +452,7 @@ void renderGameMatrix(SDL_Renderer *renderer, SDL_Texture **texture) {
     for (int y = 0; y < matrix_height-2; y++) {
         for (int x = 0; x < matrix_width; x++) {
             if (game_matrix[y+2][x][0]) {
-                for (int i = 0; i < 3; i++) {
-                    if (game_matrix[y+2][x][i+1]) {
-                        color_index = i;
-                    }
-                }
+                color_index = game_matrix[y+2][x][1];
                 renderTexture(texture[color_index], renderer, x*img_width, y*img_height);
             }
         }
@@ -426,12 +480,15 @@ tetrimino *createTetrimino() {
     tet->x = rand()%(matrix_width-3);
     tet->y = 0;
     tet->written = 0;
-    tet->color = (rand()%3)+1;
+    printf("color_index: %i\n", tet->sh.structure[4]);
+    tet->color = tet->sh.structure[4];
 
     return tet;
 }
 
 int main(int argc, char** argv){
+
+    atexit(__exit);
 
     SDL_Event event;
 
@@ -468,15 +525,11 @@ int main(int argc, char** argv){
                     if (1) {
                         switch (event.key.keysym.sym) {
                             case SDLK_LEFT:
-                                if (!checkCollisionLeftRight(tet, left)) {
-                                    advanceTetrimino(tet, left);
-                                }
+                                advanceTetrimino(tet, left);                                
                                 break;
 
                             case SDLK_RIGHT:
-                                if (!checkCollisionLeftRight(tet, right)) {
-                                    advanceTetrimino(tet, right);
-                                }
+                                advanceTetrimino(tet, right);
                                 break;
 
                             case SDLK_DOWN:
@@ -488,10 +541,13 @@ int main(int argc, char** argv){
                             case SDLK_e:
                                 rotateTetrimino(tet, left);
                                 break;
+                            case SDLK_q:
+                                __exit(EXIT_SUCCESS);
+                                break;
                             default:
                                 break;
                         }
-                        printGameMatrix();
+                        //printGameMatrix();
                         refreshGameScreen();
                     }
                     break;
@@ -533,15 +589,19 @@ int main(int argc, char** argv){
         }
     }
 
+    __exit(EXIT_SUCCESS);
+    return 0;
+}
+
+void __exit(void) {
     SDL_DestroyTexture(background);
-    for ( int i = 0; i < 3; i++) {
+    for ( int i = 0; i < NUM_SHAPES; i++) {
         SDL_DestroyTexture(blocks[i]);
     }
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(win);
     SDL_Quit();
 
-    SDL_Quit();
     printf("SUCCESS!\n");
-    return 0;
+    return;
 }

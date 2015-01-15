@@ -1,14 +1,14 @@
 #ifndef _TETRIS_H_
 #define _TETRIS_H_
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 640
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 704
 #define INTERVAL 1000
 #define NUM_SHAPES 7
 #define DEBUG 1
 
 typedef struct shape {
-    char structure[4];
+    char structure[5];
 } shape;
 
 typedef struct tetrimino { 
@@ -29,15 +29,16 @@ extern const float CLOCKS_PER_MSEC = 1000.0F/(float)CLOCKS_PER_SEC;
 
 //least significant bit is at the bottom
 extern const shape shapes[] = {  
-    {{0, 3, 3, 0}}, //square
-    {{0, 15, 0, 0}}, //line
-    {{0, 7, 1, 0}}, //l
-    {{0, 1, 7, 0}}, //j
-    {{0, 2, 3, 1}}, //z
-    {{0, 1, 3, 2}}, //s
-    {{0, 8, 14, 8}}, //t
-    {{0, 8, 12, 8}} //short t
+    {{0, 3, 3, 0, 0}}, //square //yellow
+    {{0, 15, 0, 0, 1}}, //line //light blue
+    {{0, 7, 1, 0, 2}}, //l //orange
+    {{0, 1, 7, 0, 3}}, //j //blue
+    {{0, 2, 3, 1, 4}}, //z //red
+    {{0, 1, 3, 2, 5}}, //s //green
+    {{0, 8, 12, 8, 6}} //short t //purple
 };
+
+void __exit();
 
 void initTetris();
 
@@ -59,9 +60,9 @@ int checkTetriminoCollision(tetrimino *t);
 
 int checkGameOver(tetrimino *t);
 
-void deleteRow(int r);
+void deleteRow(int row);
 
-void blinkRow(int r);
+void blinkRows(int *rows, size_t size);
 
 void checkRowsForCompletion();
 
