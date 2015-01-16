@@ -187,7 +187,7 @@ int checkCollisionLeftRight(tetrimino *t, int direction) {
     for (int y = 3; y >= 0; y--) {
         for ( int x = 0; x < 4; x++) {
 
-            if ((x+t->x < 0 || x+t->x > matrix_width)) {
+            if ((x+t->x < 0 || x+t->x >= matrix_width)) {
                 if (8>>y & t->sh.structure[x]) {
                     printf("pre=pass\n");
                     return 1;
