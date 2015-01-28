@@ -338,7 +338,7 @@ void rotateTetrimino(tetrimino *t, int direction) {
     clearTetrimino(t);
 
 
-    //rebuild tetrimino(bitmap)
+    //rebuild tetrimino(bitmap) 
     int val = 0;
     for (int x = 0; x < 4; x++) {
         val = 0;
@@ -347,33 +347,23 @@ void rotateTetrimino(tetrimino *t, int direction) {
                 val += 8>>y;
             }
         }
-        printf("Val: %i\n", val);
         t->sh.structure[x] = val;
     }
-    printf("pre check bottom\n");
-    int stuff = 0;
-    printf("checking down\n");
     while (checkCollisionDown(t)) {
-        printf("count: %i\n", ++stuff);
         t->y--;
     }
-    printf("checking left\n");
     int collided = 0;
     while (checkCollisionLeftRight(t, left)) {
-        printf("left\n");
         collided = 1;
-        t->x++;
+        t->x += (direction == left) ? 1 : -1;
     }
-    printf("checking right\n");
     while (checkCollisionLeftRight(t, right)) {
-        printf("right\n");
         collided = 1;
-        t->x--;
+        t->x += direction == left ? 1 : -1;
     }
     if (collided) {
         t->x += (direction == left ? -1 : 1);
     }
-    printf("passed checks\n");
     drawTetrimino(t);
 
 }
@@ -511,10 +501,10 @@ int main(int argc, char** argv){
 
     tetrimino *tet = NULL;
 
-    clock_t start = clock(), diff, last;
-    last = start;
+    clock_t start = clock(), last, lastIntervalChange;
+    last = lastIntervalChange = start;
 
-    printf("cps: %i  start: %d  last: %d  interval: %i\n", CLOCKS_PER_SEC, start, last, INTERVAL/speed_up_divisor);
+    printf("cps: %i  start: %ju  last: %ju  interval: %i\n", (int)CLOCKS_PER_SEC, (uintmax_t)start, (uintmax_t)last, INTERVAL/speed_up_divisor);
 
     while (!checkGameOver(tet)) {
         while (SDL_PollEvent( &event )) {
@@ -542,19 +532,26 @@ int main(int argc, char** argv){
                                 rotateTetrimino(tet, left);
                                 break;
                             case SDLK_q:
-                                __exit(EXIT_SUCCESS);
+                                exit(3);
+                            case SDLK_x:
+                                while (1) {
+                                    advanceTetrimino(tet, down);
+                                    refreshGameScreen();
+                                    if (checkCollisionDown(tet)) {
+                                        break;
+                                    }
+                                }
                                 break;
                             default:
                                 break;
                         }
-                        //printGameMatrix();
                         refreshGameScreen();
                     }
                     break;
 
                 /* SDL_QUIT event (window close) */
                 case SDL_QUIT:
-                    return 0;
+                    exit(3);
                     break;
 
                 default:
@@ -587,6 +584,12 @@ int main(int argc, char** argv){
             advanceTetrimino(tet, down);
             refreshGameScreen();
         }
+
+        if (((float)(clock()-lastIntervalChange)*CLOCKS_PER_MSEC) > SPEED_UP_INTERVAL) {
+            lastIntervalChange = clock();
+            speed_up_divisor *= 2;
+        }
+
     }
 
     __exit(EXIT_SUCCESS);

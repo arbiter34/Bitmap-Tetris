@@ -1,34 +1,42 @@
 #ifndef _TETRIS_H_
 #define _TETRIS_H_
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 704
-#define INTERVAL 1000
-#define NUM_SHAPES 7
+#define SCREEN_WIDTH 320        //window width
+#define SCREEN_HEIGHT 704       //window height
+#define INTERVAL 1000           //interval for falling
+#define NUM_SHAPES 7            //Number of shapes used, for dynamic generation
 #define DEBUG 1
+#define SPEED_UP_INTERVAL 30000 //interval for the speed to increase in MS
 
-typedef struct shape {
+typedef struct shape {          //shape struct, first four char's are the shape bitmap, fifth is color
     char structure[5];
 } shape;
 
-typedef struct tetrimino { 
-    int x;
+/* shape to hold a tetrimino, this includes it's x,y coords
+ * shape sh - current shape bitmapped(this inherently means it's rotation)
+ * written - bool for whether the tet is written to the screen matrix
+ * color - this was in place before each shape had only one color
+ */
+typedef struct tetrimino {      
+    int x;                      
     int y;
     shape sh;
     int written;
     int color;
 } tetrimino;
 
+// enum for easy direction checking
 enum Direction {
     left,
     right,
     down
 };
 
-extern const float CLOCKS_PER_MSEC = 1000.0F/(float)CLOCKS_PER_SEC;
+//clocks per ms factor
+const float CLOCKS_PER_MSEC = 1000.0F/(float)CLOCKS_PER_SEC;
 
 //least significant bit is at the bottom
-extern const shape shapes[] = {  
+const shape shapes[] = {  
     {{0, 3, 3, 0, 0}}, //square //yellow
     {{0, 15, 0, 0, 1}}, //line //light blue
     {{0, 7, 1, 0, 2}}, //l //orange
@@ -38,8 +46,10 @@ extern const shape shapes[] = {
     {{0, 8, 12, 8, 6}} //short t //purple
 };
 
+//atexit() cleanup function
 void __exit();
 
+//init functions
 void initTetris();
 
 void clearTetrimino(tetrimino *t);
